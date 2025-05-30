@@ -20,6 +20,7 @@ function setupEventListeners() {
     document.getElementById('closedTasksBtn').addEventListener('click', () => switchView('closed'));
     document.getElementById('searchInput').addEventListener('input', filterTasks);
     document.getElementById('filterSelect').addEventListener('change', filterTasks);
+    document.getElementById('logoutBtn').addEventListener('click', handleLogout);
 }
 
 // Установка текущей даты
@@ -210,4 +211,18 @@ function closeTask(taskId) {
             }, 500);
         }
     }
+}
+
+// Обработка выхода
+function handleLogout() {
+    // Очищаем данные пользователя
+    localStorage.removeItem('currentUser');
+    currentUser = null;
+    
+    // Скрываем основной контент и показываем форму входа
+    document.getElementById('mainContent').style.display = 'none';
+    document.getElementById('loginForm').style.display = 'block';
+    
+    // Очищаем форму входа
+    document.getElementById('authForm').reset();
 } 
