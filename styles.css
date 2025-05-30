@@ -5,6 +5,8 @@
     margin-bottom: 15px;
     background-color: #fff;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    position: relative;
+    overflow: hidden;
 }
 
 .task-card:hover {
@@ -90,4 +92,43 @@
 .status-closed {
     background-color: #e8f5e9;
     color: #2e7d32;
+}
+
+@keyframes confetti {
+    0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(-100px) rotate(360deg); opacity: 0; }
+}
+
+.confetti {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background-color: #f00;
+    animation: confetti 1s ease-out forwards;
+}
+
+.confetti:nth-child(2n) {
+    background-color: #0f0;
+}
+
+.confetti:nth-child(3n) {
+    background-color: #00f;
+}
+
+.confetti:nth-child(4n) {
+    background-color: #ff0;
+}
+
+.confetti:nth-child(5n) {
+    background-color: #f0f;
+}
+
+.task-closing {
+    animation: taskClosing 0.5s ease-out;
+}
+
+@keyframes taskClosing {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
 } 

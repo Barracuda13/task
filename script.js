@@ -128,6 +128,7 @@ function displayTasks(tasksToShow) {
 function createTaskElement(task) {
     const div = document.createElement('div');
     div.className = 'task-card';
+    div.setAttribute('data-task-id', task.id);
     
     const priorityClass = `priority-${task.priority}`;
     
@@ -181,12 +182,32 @@ function filterTasks() {
     displayTasks(filteredTasks);
 }
 
+// Создание конфетти
+function createConfetti(element) {
+    for (let i = 0; i < 50; i++) {
+        const confetti = document.createElement('div');
+        confetti.className = 'confetti';
+        confetti.style.left = Math.random() * 100 + '%';
+        confetti.style.top = Math.random() * 100 + '%';
+        confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+        element.appendChild(confetti);
+    }
+}
+
 // Закрытие задачи
 function closeTask(taskId) {
     const taskIndex = tasks.findIndex(task => task.id === taskId);
     if (taskIndex !== -1) {
-        tasks[taskIndex].status = 'closed';
-        saveTasks();
-        loadTasks();
+        const taskElement = document.querySelector(`[data-task-id="${taskId}"]`);
+        if (taskElement) {
+            taskElement.classList.add('task-closing');
+            createConfetti(taskElement);
+            
+            setTimeout(() => {
+                tasks[taskIndex].status = 'closed';
+                saveTasks();
+                loadTasks();
+            }, 500);
+        }
     }
 } 
