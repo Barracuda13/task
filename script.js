@@ -1,7 +1,9 @@
 // Глобальные переменные
 let currentUser = null;
-let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+let tasks = [];
+let users = [];
 let currentView = 'open';
+const API_URL = 'http://localhost:3000/api';
 
 // Инициализация приложения
 document.addEventListener('DOMContentLoaded', () => {
@@ -12,7 +14,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Настройка обработчиков событий
 function setupEventListeners() {
-    document.getElementById('authForm').addEventListener('submit', handleLogin);
+    document.getElementById('loginForm').addEventListener('submit', handleLogin);
+    document.getElementById('registerForm').addEventListener('submit', handleRegister);
     document.getElementById('createTaskBtn').addEventListener('click', showTaskForm);
     document.getElementById('cancelTaskBtn').addEventListener('click', hideTaskForm);
     document.getElementById('newTaskForm').addEventListener('submit', handleNewTask);
@@ -30,34 +33,123 @@ function setCurrentDate() {
 }
 
 // Проверка авторизации
-function checkAuth() {
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
-        currentUser = JSON.parse(savedUser);
-        showMainContent();
+async function checkAuth() {
+    const token = localStorage.getItem('token');
+    if (token) {
+        try {
+            const response = await fetch(`${API_URL}/tasks`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (response.ok) {
+                currentUser = JSON.parse(localStorage.getItem('currentUser'));
+                await loadUsers();
+                showMainContent();
+                await loadTasks();
+            } else {
+                handleLogout();
+            }
+        } catch (error) {
+            console.error('Ошибка проверки авторизации:', error);
+            handleLogout();
+        }
     }
 }
 
-// Обработка входа
-function handleLogin(e) {
-    e.preventDefault();
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
+// Загрузка списка пользователей
+async function loadUsers() {
+    try {
+        const response = await fetch(`${API_URL}/users`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        if (response.ok) {
+            users = await response.json();
+            updateAssigneeSelect();
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки пользователей:', error);
+    }
+}
 
-    // Здесь должна быть реальная проверка авторизации
-    // Для демонстрации используем простую проверку
-    if (username && password) {
-        currentUser = { username };
-        localStorage.setItem('currentUser', JSON.stringify(currentUser));
-        showMainContent();
+// Обновление списка исполнителей
+function updateAssigneeSelect() {
+    const select = document.getElementById('assignee');
+    select.innerHTML = '<option value="">Выберите исполнителя</option>';
+    users.forEach(user => {
+        const option = document.createElement('option');
+        option.value = user.username;
+        option.textContent = user.username;
+        select.appendChild(option);
+    });
+}
+
+// Обработка входа
+async function handleLogin(e) {
+    e.preventDefault();
+    const username = document.getElementById('loginUsername').value;
+    const password = document.getElementById('loginPassword').value;
+
+    try {
+        const response = await fetch(`${API_URL}/login`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ username, password })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('currentUser', JSON.stringify(data.user));
+            currentUser = data.user;
+            await loadUsers();
+            showMainContent();
+            await loadTasks();
+        } else {
+            alert('Ошибка входа. Проверьте учетные данные.');
+        }
+    } catch (error) {
+        console.error('Ошибка входа:', error);
+        alert('Ошибка при попытке входа');
+    }
+}
+
+// Обработка регистрации
+async function handleRegister(e) {
+    e.preventDefault();
+    const username = document.getElementById('registerUsername').value;
+    const password = document.getElementById('registerPassword').value;
+
+    try {
+        const response = await fetch(`${API_URL}/register`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ username, password })
+        });
+
+        if (response.ok) {
+            alert('Регистрация успешна. Теперь вы можете войти.');
+            document.getElementById('registerForm').reset();
+        } else {
+            const data = await response.json();
+            alert(data.error || 'Ошибка при регистрации');
+        }
+    } catch (error) {
+        console.error('Ошибка регистрации:', error);
+        alert('Ошибка при попытке регистрации');
     }
 }
 
 // Показать основной контент
 function showMainContent() {
-    document.getElementById('loginForm').style.display = 'none';
+    document.getElementById('authForms').style.display = 'none';
     document.getElementById('mainContent').style.display = 'block';
-    loadTasks();
 }
 
 // Показать форму создания задачи
@@ -74,11 +166,10 @@ function hideTaskForm() {
 }
 
 // Обработка создания новой задачи
-function handleNewTask(e) {
+async function handleNewTask(e) {
     e.preventDefault();
     
     const newTask = {
-        id: Date.now(),
         creationDate: document.getElementById('creationDate').value,
         type: document.getElementById('taskType').value,
         priority: document.getElementById('priority').value,
@@ -86,32 +177,54 @@ function handleNewTask(e) {
         assignee: document.getElementById('assignee').value,
         dueDate: document.getElementById('dueDate').value,
         description: document.getElementById('description').value,
-        notes: document.getElementById('notes').value,
-        createdBy: currentUser.username
+        notes: document.getElementById('notes').value
     };
 
-    tasks.push(newTask);
-    saveTasks();
-    hideTaskForm();
-    loadTasks();
-}
+    try {
+        const response = await fetch(`${API_URL}/tasks`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify(newTask)
+        });
 
-// Сохранение задач
-function saveTasks() {
-    localStorage.setItem('tasks', JSON.stringify(tasks));
+        if (response.ok) {
+            hideTaskForm();
+            await loadTasks();
+        } else {
+            alert('Ошибка при создании задачи');
+        }
+    } catch (error) {
+        console.error('Ошибка создания задачи:', error);
+        alert('Ошибка при создании задачи');
+    }
 }
 
 // Загрузка задач
-function loadTasks() {
-    const filteredTasks = tasks.filter(task => {
-        if (currentView === 'open') {
-            return task.status !== 'closed';
-        } else {
-            return task.status === 'closed';
+async function loadTasks() {
+    try {
+        const response = await fetch(`${API_URL}/tasks`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        
+        if (response.ok) {
+            tasks = await response.json();
+            const filteredTasks = tasks.filter(task => {
+                if (currentView === 'open') {
+                    return task.status !== 'closed';
+                } else {
+                    return task.status === 'closed';
+                }
+            });
+            displayTasks(filteredTasks);
         }
-    });
-
-    displayTasks(filteredTasks);
+    } catch (error) {
+        console.error('Ошибка загрузки задач:', error);
+    }
 }
 
 // Отображение задач
@@ -183,6 +296,51 @@ function filterTasks() {
     displayTasks(filteredTasks);
 }
 
+// Закрытие задачи
+async function closeTask(taskId) {
+    try {
+        const response = await fetch(`${API_URL}/tasks/${taskId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({ status: 'closed' })
+        });
+
+        if (response.ok) {
+            const taskElement = document.querySelector(`[data-task-id="${taskId}"]`);
+            if (taskElement) {
+                taskElement.classList.add('task-closing');
+                createConfetti(taskElement);
+                
+                setTimeout(async () => {
+                    await loadTasks();
+                }, 500);
+            }
+        } else {
+            alert('Ошибка при закрытии задачи');
+        }
+    } catch (error) {
+        console.error('Ошибка закрытия задачи:', error);
+        alert('Ошибка при закрытии задачи');
+    }
+}
+
+// Обработка выхода
+function handleLogout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('currentUser');
+    currentUser = null;
+    tasks = [];
+    users = [];
+    
+    document.getElementById('mainContent').style.display = 'none';
+    document.getElementById('authForms').style.display = 'block';
+    document.getElementById('loginForm').reset();
+    document.getElementById('registerForm').reset();
+}
+
 // Создание конфетти
 function createConfetti(element) {
     for (let i = 0; i < 50; i++) {
@@ -193,36 +351,4 @@ function createConfetti(element) {
         confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
         element.appendChild(confetti);
     }
-}
-
-// Закрытие задачи
-function closeTask(taskId) {
-    const taskIndex = tasks.findIndex(task => task.id === taskId);
-    if (taskIndex !== -1) {
-        const taskElement = document.querySelector(`[data-task-id="${taskId}"]`);
-        if (taskElement) {
-            taskElement.classList.add('task-closing');
-            createConfetti(taskElement);
-            
-            setTimeout(() => {
-                tasks[taskIndex].status = 'closed';
-                saveTasks();
-                loadTasks();
-            }, 500);
-        }
-    }
-}
-
-// Обработка выхода
-function handleLogout() {
-    // Очищаем данные пользователя
-    localStorage.removeItem('currentUser');
-    currentUser = null;
-    
-    // Скрываем основной контент и показываем форму входа
-    document.getElementById('mainContent').style.display = 'none';
-    document.getElementById('loginForm').style.display = 'block';
-    
-    // Очищаем форму входа
-    document.getElementById('authForm').reset();
 } 

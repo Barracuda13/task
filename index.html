@@ -9,19 +9,45 @@
 </head>
 <body>
     <div class="container mt-4">
-        <div id="loginForm" class="mb-4">
-            <h2>Авторизация</h2>
-            <form id="authForm">
-                <div class="mb-3">
-                    <label for="username" class="form-label">Имя пользователя</label>
-                    <input type="text" class="form-control" id="username" required>
+        <div id="authForms" class="mb-4">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h2>Вход</h2>
+                            <form id="loginForm">
+                                <div class="mb-3">
+                                    <label for="loginUsername" class="form-label">Имя пользователя</label>
+                                    <input type="text" class="form-control" id="loginUsername" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="loginPassword" class="form-label">Пароль</label>
+                                    <input type="password" class="form-control" id="loginPassword" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Войти</button>
+                            </form>
+                        </div>
+                    </div>
                 </div>
-                <div class="mb-3">
-                    <label for="password" class="form-label">Пароль</label>
-                    <input type="password" class="form-control" id="password" required>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h2>Регистрация</h2>
+                            <form id="registerForm">
+                                <div class="mb-3">
+                                    <label for="registerUsername" class="form-label">Имя пользователя</label>
+                                    <input type="text" class="form-control" id="registerUsername" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="registerPassword" class="form-label">Пароль</label>
+                                    <input type="password" class="form-control" id="registerPassword" required>
+                                </div>
+                                <button type="submit" class="btn btn-success">Зарегистрироваться</button>
+                            </form>
+                        </div>
+                    </div>
                 </div>
-                <button type="submit" class="btn btn-primary">Войти</button>
-            </form>
+            </div>
         </div>
 
         <div id="mainContent" style="display: none;">
@@ -65,7 +91,9 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Исполнитель</label>
-                        <input type="text" class="form-control" id="assignee" required>
+                        <select class="form-select" id="assignee" required>
+                            <option value="">Выберите исполнителя</option>
+                        </select>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Плановая дата завершения</label>
